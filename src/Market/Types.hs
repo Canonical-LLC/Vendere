@@ -28,10 +28,12 @@ import           Plutus.Contract           ( Endpoint, type (.\/) )
 
 -- This is the datum type, carrying the previous validator params
 data NFTSale = NFTSale
-    { nSeller    :: !PubKeyHash
-    , nPrice     :: !Integer
-    , nCurrency  :: !CurrencySymbol
-    , nToken     :: !TokenName
+    { nSeller          :: !PubKeyHash
+    , nPrice           :: !Integer
+    , nCurrency        :: !CurrencySymbol
+    , nToken           :: !TokenName
+    , nRoyalityAddress :: !PubKeyHash
+    , nRoyalityPercent :: !Integer
     } deriving (Pr.Eq, Pr.Ord, Show, Generic, ToJSON, FromJSON, ToSchema)
 
 instance Eq NFTSale where
@@ -39,7 +41,9 @@ instance Eq NFTSale where
     a == b = (nSeller    a == nSeller    b) &&
              (nPrice     a == nPrice     b) &&
              (nCurrency  a == nCurrency  b) &&
-             (nToken     a == nToken     b)
+             (nToken     a == nToken     b) &&
+             (nRoyalityAddress a == nRoyalityAddress b) &&
+             (nRoyalityPercent a == nRoyalityPercent b) &&
 
 PlutusTx.makeIsDataIndexed ''NFTSale [('NFTSale, 0)]
 PlutusTx.makeLift ''NFTSale
@@ -56,7 +60,7 @@ PlutusTx.makeLift ''SaleAction
 -- Therefore the user doesn't have to provide more that what's needed to execute the said action.
 {- For StartParams we ommit the seller
     because we automatically input the address of the wallet running the startSale enpoint
-    
+
    For BuyParams we ommit seller and price
     because we can read that in datum which can be obtained with just cs and tn of the sold token -}
 
