@@ -58,7 +58,8 @@ mkBuyValidator pkh nfts r ctx =
     case r of
         Buy   -> traceIfFalse "NFT not sent to buyer" checkNFTOut &&
                  traceIfFalse "Seller not paid" checkSellerOut &&
-                 traceIfFalse "Fee not paid" checkFee
+                 traceIfFalse "Fee not paid" checkFee &&
+                 traceIfFalse "Royalities not paid" checkRoyality
         Close -> traceIfFalse "No rights to perform this action" checkCloser &&
                  traceIfFalse "Close output invalid" checkCloseOut
   where
@@ -83,12 +84,21 @@ mkBuyValidator pkh nfts r ctx =
 
     checkNFTOut :: Bool
     checkNFTOut = valueOf (valuePaidTo info sig) cs tn == 1
-    
+
+    marketplaceFees :: Integer
+    marketplaceFees = 2
+
+    sellerPercentage :: Integer
+    sellerPercentage = (100 - marketplaceFees) - nRoyalityPercent nfts
+
     checkSellerOut :: Bool
-    checkSellerOut = fromInteger (Ada.getLovelace (Ada.fromValue (valuePaidTo info seller))) >= 98 % 100 * fromInteger price
+    checkSellerOut = fromInteger (Ada.getLovelace (Ada.fromValue (valuePaidTo info seller))) >= sellerPercentage % 100 * fromInteger price
 
     checkFee :: Bool
-    checkFee = fromInteger (Ada.getLovelace (Ada.fromValue (valuePaidTo info pkh))) >= 2 % 100 * fromInteger price
+    checkFee = fromInteger (Ada.getLovelace (Ada.fromValue (valuePaidTo info pkh))) >= marketplaceFees % 100 * fromInteger price
+
+    checkRoyality :: Bool
+    checkRoyality = fromInteger (Ada.getLovelace (Ada.fromValue (valuePaidTo info $ nRoyalityAddress nfts))) >= nRoyalityPercent nfts % 100 * fromInteger price
 
     checkCloser :: Bool
     checkCloser = txSignedBy info seller
