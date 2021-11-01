@@ -72,8 +72,8 @@ startSale sp = do
           , nToken = sTn sp
           , nCurrency = sCs sp
           , nPrice = sPrice sp
-          , nRoyalityAddress = sRoyalityAddress sp
-          , nRoyalityPercent = sRoyalityPercent sp
+          , nRoyalty = sRoyaltyAddress sp
+          , nRoyaltyPercent = sRoyaltyPercent sp
           }
         lookups = Constraints.unspentOutputs utxos                         <>
                   Constraints.typedValidatorLookups (typedBuyValidator companyPkh)

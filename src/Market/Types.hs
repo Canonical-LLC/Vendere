@@ -32,8 +32,8 @@ data NFTSale = NFTSale
     , nPrice           :: !Integer
     , nCurrency        :: !CurrencySymbol
     , nToken           :: !TokenName
-    , nRoyalityAddress :: !PubKeyHash
-    , nRoyalityPercent :: !Integer
+    , nRoyalty :: !PubKeyHash
+    , nRoyaltyPercent :: !Integer
     } deriving (Pr.Eq, Pr.Ord, Show, Generic, ToJSON, FromJSON, ToSchema)
 
 instance Eq NFTSale where
@@ -42,8 +42,8 @@ instance Eq NFTSale where
              (nPrice     a == nPrice     b) &&
              (nCurrency  a == nCurrency  b) &&
              (nToken     a == nToken     b) &&
-             (nRoyalityAddress a == nRoyalityAddress b) &&
-             (nRoyalityPercent a == nRoyalityPercent b)
+             (nRoyalty a == nRoyalty b) &&
+             (nRoyaltyPercent a == nRoyaltyPercent b)
 
 PlutusTx.makeIsDataIndexed ''NFTSale [('NFTSale, 0)]
 PlutusTx.makeLift ''NFTSale
@@ -74,8 +74,8 @@ data StartParams = StartParams
     { sPrice :: Integer
     , sCs    :: CurrencySymbol
     , sTn    :: TokenName
-    , sRoyalityAddress :: !PubKeyHash
-    , sRoyalityPercent :: !Integer
+    , sRoyaltyAddress :: !PubKeyHash
+    , sRoyaltyPercent :: !Integer
     } deriving (Pr.Eq, Pr.Ord, Show, Generic, ToJSON, FromJSON, ToSchema)
 
 
