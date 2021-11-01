@@ -5,6 +5,7 @@
 {-# LANGUAGE TypeApplications           #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE DerivingStrategies         #-}
+{-# LANGUAGE NumericUnderscores         #-}
 
 module Market.Onchain
     ( apiBuyScript
@@ -95,10 +96,10 @@ mkBuyValidator pkh nfts r ctx =
     checkSellerOut = fromInteger (Ada.getLovelace (Ada.fromValue (valuePaidTo info seller))) >= sellerPercentage % 100 * fromInteger price
 
     checkFee :: Bool
-    checkFee = fromInteger (Ada.getLovelace (Ada.fromValue (valuePaidTo info pkh))) >= marketplaceFees % 100 * fromInteger price
+    checkFee = fromInteger (Ada.getLovelace (Ada.fromValue (valuePaidTo info pkh))) >= max (1_000_000 % 1) (marketplaceFees % 100 * fromInteger price)
 
     checkRoyality :: Bool
-    checkRoyality = fromInteger (Ada.getLovelace (Ada.fromValue (valuePaidTo info $ nRoyalityAddress nfts))) >= nRoyalityPercent nfts % 100 * fromInteger price
+    checkRoyality = fromInteger (Ada.getLovelace (Ada.fromValue (valuePaidTo info $ nRoyalityAddress nfts))) >= max (1_000_000 % 1) (nRoyalityPercent nfts % 100 * fromInteger price)
 
     checkCloser :: Bool
     checkCloser = txSignedBy info seller
