@@ -19,7 +19,7 @@ import qualified Ledger.Ada       as Ada
 import           Prelude      (IO)
 import           Data.Default (def)
 
-import Utility         (wallet)
+import Utility         (wallet, walletPubKeyHash)
 import Market.Offchain (endpoints)
 import Market.Types    (StartParams(..), BuyParams(..))
 
@@ -28,7 +28,9 @@ nftEx1 = StartParams
     { sPrice = 10_000_000
     , sTn    = "Vendere"
     , sCs    = "66"
-    } -- This is an example token, 
+    , sRoyalityAddress = walletPubKeyHash $ wallet 5
+    , sRoyalityPercent = 5
+    } -- This is an example token,
       -- As these are the parameters of the validator, this info should be provided by the user of the contract
 
 nftEx2 :: StartParams
@@ -36,6 +38,8 @@ nftEx2 = StartParams
     { sPrice = 10_000_000
     , sTn    = "Vendere2"
     , sCs    = "66"
+    , sRoyalityAddress = walletPubKeyHash $ wallet 5
+    , sRoyalityPercent = 5
     }
 
 nftEx1' :: BuyParams
@@ -76,4 +80,3 @@ test = do
         void $ Emulator.waitNSlots 1
         callEndpoint @"buy" h4 nftEx2'
         void $ Emulator.waitNSlots 1
-    

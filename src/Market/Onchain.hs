@@ -21,8 +21,7 @@ import           Codec.Serialise          ( serialise )
 
 import           Cardano.Api.Shelley      (PlutusScript (..), PlutusScriptV1)
 import qualified PlutusTx
-import PlutusTx.Prelude as Plutus
-    ( Bool(..), Eq((==)), (.), (&&), traceIfFalse, Integer, Maybe, (>=), fromInteger, (*), (%) )
+import PlutusTx.Prelude
 import Ledger
     ( TokenName,
       PubKeyHash(..),
@@ -78,6 +77,7 @@ mkBuyValidator pkh nfts r ctx =
     sig :: PubKeyHash
     sig = case txInfoSignatories info of
             [pubKeyHash] -> pubKeyHash
+            _ -> error ()
 
     price :: Integer
     price = nPrice nfts
