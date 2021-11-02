@@ -25,7 +25,7 @@ main = do
     let scriptnum = if nargs > 0 then read (head args) else 42
     let scriptname = if nargs > 1 then args!!1 else  "market.plutus"
     putStrLn $ "Writing output to: " ++ scriptname
-    writePlutusScript scriptnum scriptname (apiBuyScript companyPkh) (buyScriptAsShortBs companyPkh)
+    writePlutusScript scriptnum scriptname (apiBuyScript "eb23924b4ebe67a4e9a86d9c4852a038a244e957cea7cf9c3d1e0614") (buyScriptAsShortBs "eb23924b4ebe67a4e9a86d9c4852a038a244e957cea7cf9c3d1e0614")
 
 
 writePlutusScript :: Integer -> FilePath -> PlutusScript PlutusScriptV1 -> SBS.ShortByteString -> IO ()
