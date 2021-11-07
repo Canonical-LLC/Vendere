@@ -21,3 +21,10 @@ cabal.project.local
 cabal.project.local~
 .HTF/
 .ghc.environment.*
+*.build
+*.signed
+*.addr
+*.skey
+*.vkey
+buying-nft.txt
+selling-nft.txt
