@@ -22,7 +22,7 @@ import Market.Types (SaleAction(..), NFTSale(..))
 
 -- Constructs the JSON file for the Buy Redeemer constructor, used as input to --tx-in-redeemer-file
 testR :: IO ()
-testR = do 
+testR = do
   writeData "redeemer.json" Close
   putStrLn "Done"
 
@@ -33,11 +33,13 @@ nftEx = NFTSale
     , nSeller   = "4b4355acf5e549d4cd26408723d1c8d87a98db7598e40bb1cd3b343e"
     , nToken    = "Vendere"
     , nCurrency = "8b050684e8d7e1abb2b79227f44c4c767025decb140e64efc783d046"
+    , nRoyalty = "4b4355acf5e549d4cd26408723d1c8d87a98db7598e40bb1cd3b343e"
+    , nRoyaltyPercent = 5
     } -- This is an example to fill with real data
       -- The `nSeller` needs to be in Base16 format, not Bech32 (addr1...).
       -- To easily get the Base16 version, go to Cardanoscan.io, search the address in format addr1...
        -- The address is written in two formats, the first being Bech32 aka addr1... and the other (in light gray) being in Base16
- 
+
 -- Constructs the JSON file for the nftEx datum, used as input to --tx-in-datum-file
 testD :: IO ()
 testD = do
@@ -45,7 +47,7 @@ testD = do
   putStrLn "Done"
 -- Datum also needs to be passed when sending the token to the script (aka putting for sale)
 -- When doing this, the datum needs to be hashed, see Alonzo-purple exercise-solutions on how to hash a datum
-  
+
 writeData :: PlutusTx.ToData a => FilePath -> a -> IO ()
 writeData file isData = LB.writeFile file (toJsonString isData)
 

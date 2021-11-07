@@ -67,7 +67,14 @@ startSale sp = do
     pkh <- pubKeyHash <$> Contract.ownPubKey
     utxos <- utxosAt (pubKeyHashAddress pkh)
     let val     = Value.singleton (sCs sp) (sTn sp) 1
-        dat     = NFTSale { nSeller = pkh, nToken = sTn sp, nCurrency = sCs sp, nPrice = sPrice sp }
+        dat     = NFTSale
+          { nSeller = pkh
+          , nToken = sTn sp
+          , nCurrency = sCs sp
+          , nPrice = sPrice sp
+          , nRoyalty = sRoyaltyAddress sp
+          , nRoyaltyPercent = sRoyaltyPercent sp
+          }
         lookups = Constraints.unspentOutputs utxos                         <>
                   Constraints.typedValidatorLookups (typedBuyValidator companyPkh)
         tx      = Constraints.mustPayToTheScript dat val
@@ -77,7 +84,7 @@ startSale sp = do
 
 
 buy :: BuyParams -> Contract w SaleSchema Text ()
-buy bp = do   
+buy bp = do
     pkh <- pubKeyHash <$> Contract.ownPubKey
     sale <- findSale (bCs bp, bTn bp)
     case sale of

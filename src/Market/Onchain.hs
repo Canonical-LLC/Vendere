@@ -5,6 +5,7 @@
 {-# LANGUAGE TypeApplications           #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE DerivingStrategies         #-}
+{-# LANGUAGE NumericUnderscores         #-}
 
 module Market.Onchain
     ( apiBuyScript
@@ -21,8 +22,8 @@ import           Codec.Serialise          ( serialise )
 
 import           Cardano.Api.Shelley      (PlutusScript (..), PlutusScriptV1)
 import qualified PlutusTx
-import PlutusTx.Prelude as Plutus
-    ( Bool(..), Eq((==)), (.), (&&), traceIfFalse, Integer, Maybe, (>=), fromInteger, (*), (%) )
+import PlutusTx.Prelude
+import PlutusTx.Ratio
 import Ledger
     ( TokenName,
       PubKeyHash(..),
@@ -58,7 +59,8 @@ mkBuyValidator pkh nfts r ctx =
     case r of
         Buy   -> traceIfFalse "NFT not sent to buyer" checkNFTOut &&
                  traceIfFalse "Seller not paid" checkSellerOut &&
-                 traceIfFalse "Fee not paid" checkFee
+                 traceIfFalse "Fee not paid" checkMarketplaceFee &&
+                 traceIfFalse "Royalities not paid" checkRoyaltyFee
         Close -> traceIfFalse "No rights to perform this action" checkCloser &&
                  traceIfFalse "Close output invalid" checkCloseOut
   where
@@ -77,18 +79,39 @@ mkBuyValidator pkh nfts r ctx =
     sig :: PubKeyHash
     sig = case txInfoSignatories info of
             [pubKeyHash] -> pubKeyHash
+            _ -> error ()
 
     price :: Integer
     price = nPrice nfts
 
     checkNFTOut :: Bool
     checkNFTOut = valueOf (valuePaidTo info sig) cs tn == 1
-    
-    checkSellerOut :: Bool
-    checkSellerOut = fromInteger (Ada.getLovelace (Ada.fromValue (valuePaidTo info seller))) >= 98 % 100 * fromInteger price
 
-    checkFee :: Bool
-    checkFee = fromInteger (Ada.getLovelace (Ada.fromValue (valuePaidTo info pkh))) >= 2 % 100 * fromInteger price
+    marketplacePercent :: Integer
+    marketplacePercent = 20
+
+    marketplaceFee :: Ratio Integer
+    marketplaceFee = max (1_000_000 % 1) (marketplacePercent % 1000 * fromInteger price)
+
+    checkMarketplaceFee :: Bool
+    checkMarketplaceFee
+      = fromInteger (Ada.getLovelace (Ada.fromValue (valuePaidTo info pkh)))
+      >= marketplaceFee
+
+    royaltyFee :: Ratio Integer
+    royaltyFee = if nRoyaltyPercent nfts > 0
+      then max (1_000_000 % 1) (nRoyaltyPercent nfts % 1000 * fromInteger price)
+      else fromInteger 0
+
+    checkRoyaltyFee :: Bool
+    checkRoyaltyFee
+      = fromInteger (Ada.getLovelace (Ada.fromValue (valuePaidTo info $ nRoyalty nfts)))
+      >= royaltyFee
+
+    checkSellerOut :: Bool
+    checkSellerOut
+      =  fromInteger (Ada.getLovelace (Ada.fromValue (valuePaidTo info seller)))
+      >= ((fromInteger price - marketplaceFee) - royaltyFee)
 
     checkCloser :: Bool
     checkCloser = txSignedBy info seller

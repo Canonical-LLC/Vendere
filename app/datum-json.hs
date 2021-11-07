@@ -35,12 +35,14 @@ testR = do
 -- Constructs the JSON file for the nftEx datum, used as input to --tx-in-datum-file
 main :: IO ()
 main = do
-  [price', seller', tn' ,cs'] <- getArgs
+  [price', seller', tn' ,cs', ra', rp'] <- getArgs
   let price  = read price'
       seller = fromString seller'
       tn     = fromString tn'
       cs     = fromString cs'
-      nftEx  = NFTSale seller price cs tn
+      ra     = fromString ra'
+      rp     = read rp'
+      nftEx  = NFTSale seller price cs tn ra rp
   writeData ("datum-" ++ show cs ++ "-" ++ tn' ++ ".json") nftEx
   putStrLn "Done"
 -- Datum also needs to be passed when sending the token to the script (aka putting for sale)
