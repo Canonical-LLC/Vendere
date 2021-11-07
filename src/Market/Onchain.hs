@@ -99,14 +99,12 @@ mkBuyValidator pkh nfts r ctx =
       >= marketplaceFee
 
     royaltyFee :: Ratio Integer
-    royaltyFee = if nRoyaltyPercent nfts > 0
-      then max (1_000_000 % 1) (nRoyaltyPercent nfts % 1000 * fromInteger price)
-      else fromInteger 0
+    royaltyFee = max (1_000_000 % 1) (nRoyaltyPercent nfts % 1000 * fromInteger price)
 
     checkRoyaltyFee :: Bool
-    checkRoyaltyFee
-      = fromInteger (Ada.getLovelace (Ada.fromValue (valuePaidTo info $ nRoyalty nfts)))
-      >= royaltyFee
+    checkRoyaltyFee = if nRoyaltyPercent nfts > 0
+      then fromInteger (Ada.getLovelace (Ada.fromValue (valuePaidTo info $ nRoyalty nfts))) >= royaltyFee
+      else True
 
     checkSellerOut :: Bool
     checkSellerOut
