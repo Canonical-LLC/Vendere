@@ -14,7 +14,7 @@ import Prelude
 import System.Environment ( getArgs )
 import qualified Data.ByteString.Short as SBS
 
-import Market.Onchain (apiBuyScript, buyScriptAsShortBs)
+import Market.Onchain (apiBuyScript, buyScriptAsShortBs, apiOfferScript, offerScriptAsShortBs)
 import Utility        (companyPkh)
 
 
@@ -26,6 +26,7 @@ main = do
     let scriptname = if nargs > 1 then args!!1 else  "market.plutus"
     putStrLn $ "Writing output to: " ++ scriptname
     writePlutusScript scriptnum scriptname (apiBuyScript companyPkh) (buyScriptAsShortBs companyPkh)
+    writePlutusScript scriptnum "offer.plutus" (apiOfferScript companyPkh) (offerScriptAsShortBs companyPkh)
 
 
 writePlutusScript :: Integer -> FilePath -> PlutusScript PlutusScriptV1 -> SBS.ShortByteString -> IO ()

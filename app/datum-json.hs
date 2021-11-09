@@ -28,7 +28,7 @@ testR = do
   putStrLn "Done" -}
 
  -- This is an example to fill with real data
-      -- The `nSeller` needs to be in Base16 format, not Bech32 (addr1...).
+      -- The `nOwner` needs to be in Base16 format, not Bech32 (addr1...).
       -- To easily get the Base16 version, go to Cardanoscan.io, search the address in format addr1...
        -- The address is written in two formats, the first being Bech32 aka addr1... and the other (in light gray) being in Base16
 

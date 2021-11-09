@@ -14,6 +14,8 @@ module Market.Onchain
     , Sale
     , buyValidator
     , nftDatum
+    , apiOfferScript
+    , offerScriptAsShortBs
     ) where
 
 import qualified Data.ByteString.Lazy     as LB
@@ -25,26 +27,16 @@ import qualified PlutusTx
 import PlutusTx.Prelude
 import PlutusTx.Ratio
 import Ledger
-    ( TokenName,
-      PubKeyHash(..),
-      CurrencySymbol,
-      DatumHash,
-      Datum(..),
-      txOutDatum,
-      txSignedBy,
-      ScriptContext(scriptContextTxInfo),
-      TxInfo,
-      Validator,
-      TxOut,
-      txInfoSignatories,
-      unValidatorScript, valuePaidTo )
 import qualified Ledger.Typed.Scripts      as Scripts
 import qualified Plutus.V1.Ledger.Scripts as Plutus
-import           Ledger.Value              as Value ( valueOf )
-import qualified Plutus.V1.Ledger.Ada as Ada (fromValue, Ada (getLovelace))
+import           Ledger.Value
+import           Plutus.V1.Ledger.Ada
 
 import           Market.Types               (NFTSale(..), SaleAction(..))
 
+{-# INLINABLE lovelaces #-}
+lovelaces :: Value -> Integer
+lovelaces = getLovelace . fromValue
 
 {-# INLINABLE nftDatum #-}
 nftDatum :: TxOut -> (DatumHash -> Maybe Datum) -> Maybe NFTSale
@@ -52,6 +44,98 @@ nftDatum o f = do
     dh <- txOutDatum o
     Datum d <- f dh
     PlutusTx.fromBuiltinData d
+
+{-# INLINABLE mkOfferValidator #-}
+mkOfferValidator :: PubKeyHash -> NFTSale -> SaleAction -> ScriptContext -> Bool
+mkOfferValidator pkh nfts r ctx =
+    case r of
+        Buy   -> traceIfFalse "NFT not sent to buyer" checkNFTOut &&
+                 traceIfFalse "Seller not paid" checkSellerOut &&
+                 traceIfFalse "Fee not paid" checkMarketplaceFee &&
+                 traceIfFalse "Royalities not paid" checkRoyaltyFee &&
+                 traceIfFalse "Script is missing Ada" scriptInputAda
+        Close -> traceIfFalse "No rights to perform this action" checkCloser
+  where
+    info :: TxInfo
+    info = scriptContextTxInfo ctx
+
+    tn :: TokenName
+    tn = nToken nfts
+
+    cs :: CurrencySymbol
+    cs = nCurrency nfts
+
+    buyer :: PubKeyHash
+    buyer = nOwner nfts
+
+    nftOwner :: PubKeyHash
+    nftOwner = case txInfoSignatories info of
+            [x] -> x
+            _ -> error ()
+
+    price :: Integer
+    price = nPrice nfts
+
+    checkNFTOut :: Bool
+    checkNFTOut = valueOf (valuePaidTo info buyer) cs tn == 1
+
+    marketplacePercent :: Integer
+    marketplacePercent = 20
+
+    marketplaceFee :: Ratio Integer
+    marketplaceFee = max (1_000_000 % 1) (marketplacePercent % 1000 * fromInteger price)
+
+    checkMarketplaceFee :: Bool
+    checkMarketplaceFee
+      = fromInteger (getLovelace (fromValue (valuePaidTo info pkh)))
+      >= marketplaceFee
+
+    royaltyFee :: Ratio Integer
+    royaltyFee = if nRoyaltyPercent nfts > 0
+      then max (1_000_000 % 1) (nRoyaltyPercent nfts % 1000 * fromInteger price)
+      else fromInteger 0
+
+    checkRoyaltyFee :: Bool
+    checkRoyaltyFee
+      = fromInteger (getLovelace (fromValue (valuePaidTo info $ nRoyalty nfts)))
+      >= royaltyFee
+
+    checkSellerOut :: Bool
+    checkSellerOut
+      =  fromInteger (getLovelace (fromValue (valuePaidTo info nftOwner)))
+      >= ((fromInteger price - marketplaceFee) - royaltyFee)
+
+    checkCloser :: Bool
+    checkCloser = txSignedBy info buyer
+
+    scriptValue :: Value
+    scriptValue = maybe (error ()) (txOutValue . txInInfoResolved) $ findOwnInput ctx
+
+    scriptInputAda :: Bool
+    scriptInputAda = lovelaces scriptValue >= price
+
+typedOfferValidator :: PubKeyHash -> Scripts.TypedValidator Sale
+typedOfferValidator pkh = Scripts.mkTypedValidator @Sale
+    ($$(PlutusTx.compile [|| mkOfferValidator ||]) `PlutusTx.applyCode` PlutusTx.liftCode pkh)
+    $$(PlutusTx.compile [|| wrap ||])
+  where
+    wrap = Scripts.wrapValidator @NFTSale @SaleAction
+
+
+offerValidator :: PubKeyHash -> Validator
+offerValidator = Scripts.validatorScript . typedOfferValidator
+
+offerScript :: PubKeyHash -> Plutus.Script
+offerScript = Ledger.unValidatorScript . offerValidator
+
+offerScriptAsShortBs :: PubKeyHash -> SBS.ShortByteString
+offerScriptAsShortBs = SBS.toShort . LB.toStrict . serialise . offerScript
+
+apiOfferScript :: PubKeyHash -> PlutusScript PlutusScriptV1
+apiOfferScript
+  = PlutusScriptSerialised
+  . offerScriptAsShortBs
+
 
 {-# INLINABLE mkBuyValidator #-}
 mkBuyValidator :: PubKeyHash -> NFTSale -> SaleAction -> ScriptContext -> Bool
@@ -74,11 +158,11 @@ mkBuyValidator pkh nfts r ctx =
     cs = nCurrency nfts
 
     seller :: PubKeyHash
-    seller = nSeller nfts
+    seller = nOwner nfts
 
     sig :: PubKeyHash
     sig = case txInfoSignatories info of
-            [pubKeyHash] -> pubKeyHash
+            [x] -> x
             _ -> error ()
 
     price :: Integer
@@ -95,7 +179,7 @@ mkBuyValidator pkh nfts r ctx =
 
     checkMarketplaceFee :: Bool
     checkMarketplaceFee
-      = fromInteger (Ada.getLovelace (Ada.fromValue (valuePaidTo info pkh)))
+      = fromInteger (getLovelace (fromValue (valuePaidTo info pkh)))
       >= marketplaceFee
 
     royaltyFee :: Ratio Integer
@@ -105,12 +189,12 @@ mkBuyValidator pkh nfts r ctx =
 
     checkRoyaltyFee :: Bool
     checkRoyaltyFee
-      = fromInteger (Ada.getLovelace (Ada.fromValue (valuePaidTo info $ nRoyalty nfts)))
+      = fromInteger (getLovelace (fromValue (valuePaidTo info $ nRoyalty nfts)))
       >= royaltyFee
 
     checkSellerOut :: Bool
     checkSellerOut
-      =  fromInteger (Ada.getLovelace (Ada.fromValue (valuePaidTo info seller)))
+      =  fromInteger (getLovelace (fromValue (valuePaidTo info seller)))
       >= ((fromInteger price - marketplaceFee) - royaltyFee)
 
     checkCloser :: Bool

@@ -28,7 +28,7 @@ import           Plutus.Contract           ( Endpoint, type (.\/) )
 
 -- This is the datum type, carrying the previous validator params
 data NFTSale = NFTSale
-    { nSeller          :: !PubKeyHash
+    { nOwner          :: !PubKeyHash
     , nPrice           :: !Integer
     , nCurrency        :: !CurrencySymbol
     , nToken           :: !TokenName
@@ -38,7 +38,7 @@ data NFTSale = NFTSale
 
 instance Eq NFTSale where
     {-# INLINABLE (==) #-}
-    a == b = (nSeller    a == nSeller    b) &&
+    a == b = (nOwner    a == nOwner    b) &&
              (nPrice     a == nPrice     b) &&
              (nCurrency  a == nCurrency  b) &&
              (nToken     a == nToken     b) &&

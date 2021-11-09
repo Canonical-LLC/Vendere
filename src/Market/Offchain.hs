@@ -68,7 +68,7 @@ startSale sp = do
     utxos <- utxosAt (pubKeyHashAddress pkh)
     let val     = Value.singleton (sCs sp) (sTn sp) 1
         dat     = NFTSale
-          { nSeller = pkh
+          { nOwner = pkh
           , nToken = sTn sp
           , nCurrency = sCs sp
           , nPrice = sPrice sp
@@ -99,7 +99,7 @@ buy bp = do
                           Constraints.otherScript (buyValidator companyPkh)
                 tx      = Constraints.mustSpendScriptOutput oref r          <>
                           Constraints.mustPayToPubKey pkh val               <>
-                          Constraints.mustPayToPubKey (nSeller nfts) valAdaS <>
+                          Constraints.mustPayToPubKey (nOwner nfts) valAdaS <>
                           Constraints.mustPayToPubKey companyPkh valAdaF
             ledgerTx <- submitTxConstraintsWith lookups tx
             void $ awaitTxConfirmed $ txId ledgerTx
@@ -118,7 +118,7 @@ close bp = do
                           Constraints.otherScript (buyValidator companyPkh)                <>
                           Constraints.unspentOutputs (Map.singleton oref o)
                 tx      = Constraints.mustSpendScriptOutput oref r      <>
-                          Constraints.mustPayToPubKey (nSeller nfts) val
+                          Constraints.mustPayToPubKey (nOwner nfts) val
             ledgerTx <- submitTxConstraintsWith lookups tx
             void $ awaitTxConfirmed $ txId ledgerTx
             Contract.logInfo @String "close transaction confirmed"
