@@ -61,8 +61,7 @@ mkBuyValidator pkh nfts r ctx =
                  traceIfFalse "Seller not paid" checkSellerOut &&
                  traceIfFalse "Fee not paid" checkMarketplaceFee &&
                  traceIfFalse "Royalities not paid" checkRoyaltyFee
-        Close -> traceIfFalse "No rights to perform this action" checkCloser &&
-                 traceIfFalse "Close output invalid" checkCloseOut
+        Close -> traceIfFalse "No rights to perform this action" checkCloser
   where
     info :: TxInfo
     info = scriptContextTxInfo ctx
@@ -113,9 +112,6 @@ mkBuyValidator pkh nfts r ctx =
 
     checkCloser :: Bool
     checkCloser = txSignedBy info seller
-
-    checkCloseOut :: Bool
-    checkCloseOut = valueOf (valuePaidTo info seller) cs tn == 1
 
 
 data Sale
