@@ -34,6 +34,9 @@ import Ledger
       txSignedBy,
       ScriptContext(scriptContextTxInfo),
       TxInfo,
+      TxInInfo(..),
+      txInfoInputs,
+      txOutDatumHash,
       Validator,
       TxOut,
       txInfoSignatories,
@@ -53,6 +56,18 @@ nftDatum o f = do
     Datum d <- f dh
     PlutusTx.fromBuiltinData d
 
+{-# INLINABLE ensureOnlyOneScriptInput #-}
+ensureOnlyOneScriptInput :: ScriptContext -> Bool
+ensureOnlyOneScriptInput ctx =
+  let
+    isScriptInput :: TxInInfo -> Bool
+    isScriptInput i = case (txOutDatumHash . txInInfoResolved) i of
+      Nothing -> False
+      Just _ -> True
+  in if length (filter isScriptInput $ txInfoInputs (scriptContextTxInfo ctx)) <= 1
+       then True
+       else False
+
 {-# INLINABLE mkBuyValidator #-}
 mkBuyValidator :: PubKeyHash -> NFTSale -> SaleAction -> ScriptContext -> Bool
 mkBuyValidator pkh nfts r ctx =
@@ -60,7 +75,8 @@ mkBuyValidator pkh nfts r ctx =
         Buy   -> traceIfFalse "NFT not sent to buyer" checkNFTOut &&
                  traceIfFalse "Seller not paid" checkSellerOut &&
                  traceIfFalse "Fee not paid" checkMarketplaceFee &&
-                 traceIfFalse "Royalities not paid" checkRoyaltyFee
+                 traceIfFalse "Royalities not paid" checkRoyaltyFee &&
+                 traceIfFalse "More than one script input" onlyOneScriptInput
         Close -> traceIfFalse "No rights to perform this action" checkCloser
   where
     info :: TxInfo
@@ -112,6 +128,9 @@ mkBuyValidator pkh nfts r ctx =
 
     checkCloser :: Bool
     checkCloser = txSignedBy info seller
+
+    onlyOneScriptInput :: Bool
+    onlyOneScriptInput = ensureOnlyOneScriptInput ctx
 
 
 data Sale
